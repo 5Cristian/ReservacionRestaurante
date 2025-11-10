@@ -1,108 +1,151 @@
-# Restaurant Reservations — Full Stack App (Backend + Frontend)
+# 🍽️ Reservación Restaurante
 
-Sistema completo para gestionar mesas, reservas y clientes de un restaurante familiar.
-
-## 🧩 Tecnologías
-- **Backend:** Node.js, Express, Prisma ORM, SQLite (por defecto) — fácil de cambiar a MySQL/PostgreSQL.
-- **Frontend:** React + Vite, Axios, TailwindCSS.
-- **Extras opcionales:** Nodemailer (confirmaciones por correo), node-cron (recordatorios), reportes simples.
-
-> Por simplicidad, las reservas duran **90 minutos**. El horario laboral por defecto es **11:00–22:00** (configurable).
+**Proyecto Final - Desarrollo Web**  
+Sistema completo (Backend + Frontend) para la gestión de **reservas de mesas, clientes y disponibilidad** en un restaurante familiar.
 
 ---
 
-## 🚀 Ejecución Rápida
+## 🚀 Características principales
 
-### 1) Backend
-```bash
+✅ Gestión de **mesas** (número, capacidad y ubicación).  
+✅ Registro y administración de **reservas** con validación de horario y capacidad.  
+✅ Control de **clientes** con historial de reservas.  
+✅ Sistema de **autenticación y roles** (admin / staff).  
+✅ Integración con **correo electrónico** para confirmación de registro.  
+✅ Arquitectura modular y código limpio (NestJS + React).  
+
+---
+
+## 🧩 Tecnologías utilizadas
+
+### 🖥️ **Backend**
+- [NestJS](https://nestjs.com/)
+- [TypeORM](https://typeorm.io/)
+- [PostgreSQL](https://www.postgresql.org/)
+- [JWT y Passport](https://docs.nestjs.com/security/authentication)
+- [Nodemailer](https://nodemailer.com/) para envío de correos
+- Arquitectura modular (controladores, servicios, entidades)
+
+### 💻 **Frontend**
+- [React + Vite](https://vitejs.dev/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Axios](https://axios-http.com/)
+- [React Router](https://reactrouter.com/)
+- [Context API](https://react.dev/reference/react/useContext) para autenticación global
+
+---
+
+## ⚙️ Instalación y ejecución
+
+### 🧠 **Requisitos previos**
+Asegúrate de tener instalado:
+- [Node.js 18+](https://nodejs.org/)
+- [PostgreSQL](https://www.postgresql.org/)
+- [Git](https://git-scm.com/)
+
+---
+
+### 🖥️ **1. Clonar el repositorio**
+
+git clone https://github.com/5Cristian/ReservacionRestaurante.git
+cd ReservacionRestaurante
+🧩 2. Configurar el backend
+
 cd backend
-cp .env.example .env   # Opcional editar SMTP y DB
 npm install
-npx prisma migrate dev --name init
-npx prisma db seed
-npm run dev
-```
-- Servidor por defecto en: **http://localhost:4000**
-- Documentación mínima de endpoints al final del README.
 
-### 2) Frontend
-```bash
+Crea un archivo .env con tus credenciales:
+--------------------------------------------------
+env
+# === App ===
+PORT=4000
+OPENING_HOUR=11
+CLOSING_HOUR=22
+RESERVATION_DURATION_MIN=90
+
+# === Database (PostgreSQL) ===
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=1234
+DB_DATABASE=restaurant
+
+# === Email (Gmail App Password) ===
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=tu_correo@gmail.com
+EMAIL_PASS=tu_contraseña_de_aplicación
+EMAIL_FROM="Reservas Restaurante <tu_correo@gmail.com>"
+
+# === JWT ===
+JWT_SECRET=tu_secreto_seguro
+JWT_EXPIRES=1d
+
+# === Environment ===
+NODE_ENV=development
+FRONTEND_URL=http://localhost:5173
+MAIL_ENABLED=true
+-------------------------------------------------------------
+
+
+Ejecuta el servidor:
+
+npm run start:dev
+El backend se ejecutará en:
+👉 http://localhost:4000
+
+💻 3. Configurar el frontend
 cd ../frontend
 npm install
 npm run dev
-```
-- UI por defecto en: **http://localhost:5173**
+El frontend se ejecutará en:
+👉 http://localhost:5173
 
-> La app asume el backend en `http://localhost:4000/api`. Puedes cambiarlo en `frontend/src/lib/api.js`.
+📁 Estructura del proyecto
 
----
+restaurant-reservations/
+├── backend/
+│   ├── src/
+│   │   ├── auth/
+│   │   ├── customers/
+│   │   ├── reservations/
+│   │   ├── tables/
+│   │   ├── mail/
+│   │   └── main.ts
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── .env.example
+│
+├── frontend/
+│   ├── src/
+│   │   ├── pages/
+│   │   ├── components/
+│   │   ├── lib/
+│   │   └── main.jsx
+│   ├── vite.config.js
+│   ├── tailwind.config.js
+│   └── package.json
+│
+├── .gitignore
+└── README.md
+🧠 Arquitectura
+Frontend: SPA (Single Page Application) con React y Vite.
 
-## 🗄️ Base de Datos
-Prisma usa SQLite por defecto (archivo `dev.db`). Para **MySQL** o **PostgreSQL**:
-1. Cambia `DATABASE_URL` en `.env` del backend. Ejemplos:
-   - MySQL: `mysql://user:pass@localhost:3306/restaurant`
-   - Postgres: `postgresql://user:pass@localhost:5432/restaurant?schema=public`
-2. Ejecuta:
-```bash
-npx prisma migrate deploy
-npx prisma db seed
-```
+Backend: API REST modular con NestJS.
 
----
+Base de datos: PostgreSQL.
 
-## 🔐 Validaciones Clave
-- No permitir doble reserva para **la misma mesa** y **horario solapado** (ventana = 90 minutos).
-- Validar **capacidad** de la mesa vs **número de personas**.
-- Bloquear reservas fuera de **horarios laborales** (11:00–22:00).
-- Cambios de estado: `CONFIRMED | CANCELLED`.
+Comunicación: HTTP + JSON.
 
----
+Autenticación: JWT.
 
-## 📊 Consultas Especiales (API)
-- Disponibilidad de mesas por fecha/hora: `GET /api/availability?date=YYYY-MM-DD&time=HH:mm`
-- Reservas del día: `GET /api/reports/reservations/today?date=YYYY-MM-DD`
-- Historial de cliente: `GET /api/customers/:id/history`
-- Ocupación (día/semana): `GET /api/reports/occupancy?range=day|week&date=YYYY-MM-DD`
+### 🖥️ **4. Crear Base de datos **
+BD= restaurant
 
----
+👤 Autor
+Desarrollado por Cristian Claudio	
+📧 cristianclaudio60@gmail.com
+💼 GitHub - 5Cristiano
 
-## 🔔 Notificaciones (Opcional)
-Configura SMTP en `.env` para que `reservations.controller` envíe confirmación.
-- `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_FROM`
-
-Recordatorios automáticos (previos a la reserva) usan `node-cron` si `ENABLE_CRON=true`.
-
----
-
-## 📦 Postman
-Importa `./postman/RestaurantReservations.postman_collection.json`.
-
----
-
-## 📚 Endpoints (resumen)
-- **Mesas**
-  - `GET /api/tables`
-  - `POST /api/tables`
-  - `PUT /api/tables/:id`
-  - `DELETE /api/tables/:id`
-- **Clientes**
-  - `GET /api/customers`
-  - `POST /api/customers`
-  - `GET /api/customers/:id/history`
-- **Reservas**
-  - `GET /api/reservations`
-  - `POST /api/reservations` (crea + valida reglas)
-  - `PUT /api/reservations/:id`
-  - `POST /api/reservations/:id/cancel`
-- **Consultas**
-  - `GET /api/availability?date=YYYY-MM-DD&time=HH:mm`
-  - `GET /api/reports/reservations/today?date=YYYY-MM-DD`
-  - `GET /api/reports/occupancy?range=day|week&date=YYYY-MM-DD`
-
----
-
-## 📝 Notas de Diseño
-- Duración de reserva configurable (`RESERVATION_DURATION_MIN=90`).
-- Horario laboral configurable (`OPENING_HOUR=11`, `CLOSING_HOUR=22`).
-- Frontend actualiza datos cada 10s (polling sencillo).
-- Sin autenticación por defecto, fácilmente extensible con JWT.
+📜 Licencia
+Este proyecto fue desarrollado con fines educativos como parte del Examen Final del curso Desarrollo Web en la Universidad Mariano Gálvez de Guatemala.
