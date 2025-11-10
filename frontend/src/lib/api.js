@@ -2,10 +2,12 @@ import axios from 'axios';
 
 export const API_BASE = 'http://localhost:4000/api';
 
-export const api = axios.create({ baseURL: API_BASE });
+export const api = axios.create({ baseURL: API_BASE});
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token =
+    localStorage.getItem('token') ||
+    JSON.parse(localStorage.getItem('user') || 'null')?.token;
   if (token) {
     config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
@@ -13,7 +15,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// NUEVO: manejar 401
+// Redirigir si vence o falta el token
 api.interceptors.response.use(
   (res) => res,
   (err) => {
@@ -32,4 +34,7 @@ export function authHeaders() {
   const token = localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
+
+
+
 

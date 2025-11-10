@@ -15,6 +15,7 @@ export class TableEntity {
   @Column({ nullable: true })
   location?: string;
 
-  @OneToMany(()=>Reservation, r=>r.table)
+  @OneToMany(() => Reservation, (r) => r.table)
   reservations: Reservation[];
 }
+

@@ -232,3 +232,63 @@ input:-webkit-autofill{
   -webkit-box-shadow: 0 0 0 1000px rgba(255,255,255,.10) inset;
   box-shadow: 0 0 0 1000px rgba(255,255,255,.10) inset;
 }
+
+/* === Mejoras para formularios del panel === */
+
+/* Transición suave y glow */
+input, select, textarea {
+  transition: all 0.2s ease-in-out;
+  border-radius: 12px;
+}
+
+/* Efecto visual al foco */
+input:focus, select:focus, textarea:focus {
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.25),
+              0 0 4px rgba(16, 185, 129, 0.25);
+  border-color: rgba(129,140,248,.45) !important;
+  outline: none;
+}
+
+/* Placeholders suaves */
+::placeholder {
+  color: #94a3b8;
+  opacity: 0.8;
+}
+
+/* Botones principales */
+button, .btn, .primary-btn {
+  transition: all 0.2s ease-in-out;
+  font-weight: 600;
+  border-radius: 12px;
+}
+
+button:hover, .btn:hover, .primary-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+/* Mensajes de validación */
+.text-success {
+  color: #4ade80; /* verde */
+}
+.text-error {
+  color: #f87171; /* rojo */
+}
+/* === Corrige visibilidad del menú desplegable (select) === */
+select {
+  background-color: rgba(15, 23, 42, 0.85) !important; /* slate-900 con transparencia */
+  color: #e2e8f0 !important; /* texto claro */
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Al abrir la lista desplegable */
+select option {
+  background-color: #0f172a !important; /* fondo sólido oscuro */
+  color: #e2e8f0 !important;
+}
+
+/* Al pasar el mouse por encima de una opción */
+select option:hover {
+  background-color: rgba(99, 102, 241, 0.25) !important; /* tono azul tenue */
+  color: #fff !important;
+}

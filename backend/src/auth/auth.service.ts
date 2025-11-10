@@ -1,8 +1,12 @@
 // backend/src/auth/auth.service.ts
-import { Injectable, UnauthorizedException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { UsersService } from '../users/user.service';
 import * as bcrypt from 'bcryptjs';
-import * as jwt from 'jsonwebtoken';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { VerificationCode } from './verification-code.entity';
@@ -12,6 +16,7 @@ import { MailService } from '../mail/mail.service';
 import { RegisterDto } from './dto/register.dto';
 import { RegisterStartDto } from './dto/register-start.dto';
 import { RegisterVerifyDto } from './dto/register-verify.dto';
+import { JwtService } from '@nestjs/jwt';
 
 const PENDING_TTL_HOURS = 24;
 
@@ -24,7 +29,13 @@ export class AuthService {
     @InjectRepository(PendingUser)
     private pendingRepo: Repository<PendingUser>,
     private mail: MailService,
+    private readonly jwtService: JwtService,
   ) {}
+
+  /** firma un access token con configuración del JwtModule */
+  private signAccessToken(payload: any) {
+  return this.jwtService.sign(payload);  // ← sin segundo parámetro
+}
 
   // ---------- LOGIN ----------
   async login(username: string, password: string) {
@@ -36,11 +47,13 @@ export class AuthService {
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Credenciales inválidas');
 
-    const access_token = jwt.sign(
-      { sub: user.id, email: user.email, role: user.role, name: user.name },
-      process.env.JWT_SECRET || 'changeme',
-      { expiresIn: process.env.JWT_EXPIRES || '1d' },
-    );
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
+    };
+    const access_token = this.signAccessToken(payload);
 
     return {
       access_token,
@@ -49,40 +62,36 @@ export class AuthService {
   }
 
   // ---------- GENERAR CÓDIGO ALEATORIO ----------
-private generateCode(len = 6) {
-  return Array.from({ length: len }, () => Math.floor(Math.random() * 10)).join('');
-}
+  private generateCode(len = 6) {
+    return Array.from({ length: len }, () => Math.floor(Math.random() * 10)).join('');
+  }
 
   // ---------- ENVIAR CÓDIGO ----------
-async sendVerificationCode(email: string) {
-  const code = this.generateCode(6);
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
+  async sendVerificationCode(email: string) {
+    const code = this.generateCode(6);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
 
-  try {
-    await this.codesRepo.save({ email: email.toLowerCase(), code, expiresAt, used: false });
-  } catch (e: any) {
-    console.error('[codesRepo.save] error:', e?.code || e?.message, e);
-    throw new InternalServerErrorException('No se pudo generar el código');
-  }
-
-  // Construye el enlace al front para verificar
-  const base = process.env.FRONTEND_URL || 'http://localhost:5173';
-  const verifyUrl = `${base}/verify-email?email=${encodeURIComponent(email)}`;
-
-  // En dev no rompas si el SMTP falla
-  try {
-    if (String(process.env.MAIL_ENABLED || 'true') === 'true') {
-      // ← pasamos verifyUrl como 3er parámetro
-      await this.mail.sendVerificationCode(email, code, verifyUrl);
-    } else {
-      console.log('[MAIL_DISABLED] Código para', email, '=>', code, 'URL:', verifyUrl);
+    try {
+      await this.codesRepo.save({ email: email.toLowerCase(), code, expiresAt, used: false });
+    } catch (e: any) {
+      console.error('[codesRepo.save] error:', e?.code || e?.message, e);
+      throw new InternalServerErrorException('No se pudo generar el código');
     }
-  } catch (e: any) {
-    console.error('[mail.sendVerificationCode] error:', e?.message);
-    // No lanzamos error aquí para evitar 500 en dev
-  }
-}
 
+    const base = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const verifyUrl = `${base}/verify-email?email=${encodeURIComponent(email)}`;
+
+    try {
+      if (String(process.env.MAIL_ENABLED || 'true') === 'true') {
+        await this.mail.sendVerificationCode(email, code, verifyUrl);
+      } else {
+        console.log('[MAIL_DISABLED] Código para', email, '=>', code, 'URL:', verifyUrl);
+      }
+    } catch (e: any) {
+      console.error('[mail.sendVerificationCode] error:', e?.message);
+      // no lanzamos error, para no romper el flujo en dev
+    }
+  }
 
   // ---------- LEGACY: REGISTRO EN UN SOLO PASO ----------
   async registerCustomer(dto: RegisterDto) {
@@ -100,7 +109,9 @@ async sendVerificationCode(email: string) {
     await this.codesRepo.save(lastCode);
 
     const strong =
-      /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&#._-])[A-Za-z\d@$!%*?&#._-]{8,}$/.test(dto.password);
+      /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&#._-])[A-Za-z\d@$!%*?&#._-]{8,}$/.test(
+        dto.password,
+      );
     if (!strong) throw new BadRequestException('La contraseña no cumple complejidad');
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
@@ -115,11 +126,13 @@ async sendVerificationCode(email: string) {
     });
     const user = Array.isArray(created) ? created[0] : created;
 
-    const access_token = jwt.sign(
-      { sub: user.id, email: user.email, role: user.role, name: user.name },
-      process.env.JWT_SECRET || 'changeme',
-      { expiresIn: process.env.JWT_EXPIRES || '1d' },
-    );
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
+    };
+    const access_token = this.signAccessToken(payload);
 
     return {
       access_token,
@@ -140,7 +153,9 @@ async sendVerificationCode(email: string) {
     const phone = dto.phone ?? null;
 
     const strong =
-      /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&#._-])[A-Za-z\d@$!%*?&#._-]{8,}$/.test(dto.password);
+      /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&#._-])[A-Za-z\d@$!%*?&#._-]{8,}$/.test(
+        dto.password,
+      );
     if (!strong) throw new BadRequestException('La contraseña no cumple complejidad');
 
     if (await this.users.findByUsername(username))
@@ -152,8 +167,7 @@ async sendVerificationCode(email: string) {
     const expiresAt = new Date(Date.now() + PENDING_TTL_HOURS * 3600_000);
 
     try {
-      // Evita duplicados por email
-      await this.pendingRepo.delete({ email });
+      await this.pendingRepo.delete({ email }); // evita duplicados
       await this.pendingRepo.save({
         email,
         username,
@@ -165,73 +179,73 @@ async sendVerificationCode(email: string) {
     } catch (e: any) {
       console.error('[pendingRepo.save] error:', e?.code || e?.message, e);
       if (e?.code === '23505') {
-        // Postgres: unique_violation
         throw new BadRequestException('Ya existe un registro pendiente para ese correo');
       }
       throw new InternalServerErrorException('No se pudo iniciar el registro');
     }
 
-    // Genera + envía código (con tolerancia al fallo de SMTP)
     await this.sendVerificationCode(email);
     return { ok: true, message: 'Te enviamos un código a tu correo.' };
   }
 
   // ---------- NUEVO: REGISTRO PASO 2 ----------
-async registerVerify(dto: RegisterVerifyDto) {
-  // Normaliza y valida entrada
-  const email = String(dto?.email ?? '').trim().toLowerCase();
-  const code  = String(dto?.code  ?? '').trim();
+  async registerVerify(dto: RegisterVerifyDto) {
+    const email = String(dto?.email ?? '').trim().toLowerCase();
+    const code = String(dto?.code ?? '').trim();
 
-  if (!email) throw new BadRequestException('Email requerido');
-  if (!code)  throw new BadRequestException('Código requerido');
+    if (!email) throw new BadRequestException('Email requerido');
+    if (!code) throw new BadRequestException('Código requerido');
 
-  const last = await this.codesRepo.findOne({
-    where: { email, used: false },
-    order: { createdAt: 'DESC' },
-  });
-  if (!last) throw new BadRequestException('Primero solicita un código');
-  if (last.code !== code) throw new BadRequestException('Código inválido');
-  if (last.expiresAt < new Date()) throw new BadRequestException('Código expirado');
-
-  const pending = await this.pendingRepo.findOne({ where: { email } });
-  if (!pending) throw new BadRequestException('Registro temporal no encontrado o expirado');
-  if (pending.expiresAt < new Date()) {
-    await this.pendingRepo.delete({ id: pending.id });
-    throw new BadRequestException('Registro temporal expirado');
-  }
-
-  let user;
-  try {
-    const created = await this.users.create({
-      username: pending.username,
-      name: pending.name,
-      email: pending.email,
-      phone: pending.phone ?? null,
-      passwordHash: pending.passwordHash,
-      role: 'customer',
+    const last = await this.codesRepo.findOne({
+      where: { email, used: false },
+      order: { createdAt: 'DESC' },
     });
-    user = Array.isArray(created) ? created[0] : created;
-  } catch (e: any) {
-    console.error('[users.create] error:', e?.code || e?.message, e);
-    throw new InternalServerErrorException('No se pudo finalizar el registro');
+    if (!last) throw new BadRequestException('Primero solicita un código');
+    if (last.code !== code) throw new BadRequestException('Código inválido');
+    if (last.expiresAt < new Date()) throw new BadRequestException('Código expirado');
+
+    const pending = await this.pendingRepo.findOne({ where: { email } });
+    if (!pending) throw new BadRequestException('Registro temporal no encontrado o expirado');
+    if (pending.expiresAt < new Date()) {
+      await this.pendingRepo.delete({ id: pending.id });
+      throw new BadRequestException('Registro temporal expirado');
+    }
+
+    let user;
+    try {
+      const created = await this.users.create({
+        username: pending.username,
+        name: pending.name,
+        email: pending.email,
+        phone: pending.phone ?? null,
+        passwordHash: pending.passwordHash,
+        role: 'customer',
+      });
+      user = Array.isArray(created) ? created[0] : created;
+    } catch (e: any) {
+      console.error('[users.create] error:', e?.code || e?.message, e);
+      throw new InternalServerErrorException('No se pudo finalizar el registro');
+    }
+
+    last.used = true;
+    await this.codesRepo.save(last);
+    await this.pendingRepo.delete({ id: pending.id });
+
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
+    };
+    const access_token = this.signAccessToken(payload);
+
+    return {
+      access_token,
+      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+    };
   }
-
-  last.used = true;
-  await this.codesRepo.save(last);
-  await this.pendingRepo.delete({ id: pending.id });
-
-  const access_token = jwt.sign(
-    { sub: user.id, email: user.email, role: user.role, name: user.name },
-    process.env.JWT_SECRET || 'changeme',
-    { expiresIn: process.env.JWT_EXPIRES || '1d' },
-  );
-
-  return {
-    access_token,
-    user: { id: user.id, email: user.email, name: user.name, role: user.role },
-  };
 }
-}
+
 
 
 
