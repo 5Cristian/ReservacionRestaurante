@@ -1,0 +1,50 @@
+# === Node.js general ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# === Build outputs ===
+dist/
+build/
+.cache/
+.vite/
+coverage/
+tmp/
+uploads/
+
+# === Environment files ===
+.env
+.env.local
+.env.*.local
+
+# === Database and ORM ===
+*.sqlite
+*.db
+/prisma/
+.prisma/
+
+# === OS and editor files ===
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# === Logs ===
+logs/
+*.log
+*.log.*
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# === React/Vite ===
+*.zip
+*.tar
+*.gz
+
+# === Optional ===
+# ignore test coverage if you use Jest
+coverage/

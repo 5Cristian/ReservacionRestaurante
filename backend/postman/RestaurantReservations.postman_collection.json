@@ -1,0 +1,108 @@
+{
+  "info": {
+    "name": "RestaurantReservations (Nest)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List Tables",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:4000/api/tables"
+      }
+    },
+    {
+      "name": "Create Table",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"number\": 6, \"capacity\": 4, \"location\": \"Terraza 2\"}"
+        },
+        "url": "http://localhost:4000/api/tables"
+      }
+    },
+    {
+      "name": "List Customers",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:4000/api/customers"
+      }
+    },
+    {
+      "name": "Create Customer",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"Cliente Demo\", \"email\": \"cliente@demo.com\", \"phone\": \"555-3333\"}"
+        },
+        "url": "http://localhost:4000/api/customers"
+      }
+    },
+    {
+      "name": "List Reservations",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:4000/api/reservations"
+      }
+    },
+    {
+      "name": "Create Reservation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"customerId\": 1, \"tableId\": 2, \"date\": \"2025-11-10T14:00:00\", \"partySize\": 2, \"notes\": \"Cumplea\\u00f1os\"}"
+        },
+        "url": "http://localhost:4000/api/reservations"
+      }
+    },
+    {
+      "name": "Cancel Reservation",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:4000/api/reservations/1/cancel"
+      }
+    },
+    {
+      "name": "Availability",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:4000/api/availability?date=2025-11-10&time=14:00"
+      }
+    },
+    {
+      "name": "Today",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:4000/api/reports/reservations/today"
+      }
+    },
+    {
+      "name": "Occupancy",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:4000/api/reports/occupancy?range=day"
+      }
+    }
+  ]
+}
